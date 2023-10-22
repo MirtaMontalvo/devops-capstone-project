@@ -134,15 +134,20 @@ class TestAccountService(TestCase):
         data = resp.get_json()
         self.assertEqual(data["name"], account.name)
 
-    def test_update_account_method_not_allowed(self):
-        """It should return a 405 Method Not Allowed when using an unsupported HTTP method"""
-        resp = self.client.get(BASE_URL)  # Try to use the GET method on the update endpoint
-        self.assertEqual(resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
-
     def test_get_account_not_found(self):
         """It should not Read an Account that is not found"""
         resp = self.client.get(f"{BASE_URL}/0")
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_get_account_405_method_not_allowed_put(self):
+        """It should return 405 error when using put method instead of get"""
+        resp = self.client.put(BASE_URL)  # Use PUT method instead of GET
+        self.assertEqual(resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_get_account_405_method_not_allowed_delete(self):
+        """It should return 405 error when using delete method instead of get"""
+        resp = self.client.delete(BASE_URL)  # Use DELETE method instead of GET
+        self.assertEqual(resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
     def test_update_account(self):
         """It should Update an existing Account"""
@@ -153,15 +158,42 @@ class TestAccountService(TestCase):
 
         # update the account
         new_account = resp.get_json()
-        new_account["name"] = "Something Known"
+        new_account["name"] = "Mariposa Brown"
         resp = self.client.put(f"{BASE_URL}/{new_account['id']}", json=new_account)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         updated_account = resp.get_json()
-        self.assertEqual(updated_account["name"], "Something Known")
+        self.assertEqual(updated_account["name"], "Mariposa Brown")     
+    
+    def test_update_account_not_found(self):
+        """It should not update an Account that is not found"""
+        resp = self.client.put(f"{BASE_URL}/0")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_delete_account_not_found(self):
+        """It should not delete an Account that is not found"""
+        resp = self.client.delete(f"{BASE_URL}/0")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_delete_account(self):
         """It should Delete an Account"""
         account = self._create_accounts(1)[0]
         resp = self.client.delete(f"{BASE_URL}/{account.id}")
         self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_get_account_list(self):
+        """It should Get a list of Accounts"""
+        self._create_accounts(5)
+        resp = self.client.get(BASE_URL)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        data = resp.get_json()
+        self.assertEqual(len(data), 5)
         
+    def test_get_account_list_405_method_not_allowed_put(self):
+        """It should return 405 error when using wrong method (PUT)"""
+        resp = self.client.put(BASE_URL)  # Use PUT method instead of GET
+        self.assertEqual(resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_get_account_list_405_method_not_allowed_delete(self):
+        """It should return 405 error when using wrong method (DELETE)"""
+        resp = self.client.delete(BASE_URL)  # Use DELETE method instead of GET
+        self.assertEqual(resp.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
