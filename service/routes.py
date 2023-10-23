@@ -51,7 +51,7 @@ def create_accounts():
     account.create()
     message = account.serialize()
     # Uncomment once get_accounts has been implemented
-    # location_url = url_for("get_accounts", account_id=account.id, _external=True)
+    location_url = url_for("get_accounts", account_id=account.id, _external=True)
     location_url = "/"  # Remove once get_accounts has been implemented
     return make_response(
         jsonify(message), status.HTTP_201_CREATED, {"Location": location_url}
@@ -67,10 +67,6 @@ def list_accounts():
     List all Accounts
     This endpoint will list all Accounts
     """
-    if request.method == "DELETE" or request.method == "PUT":
-        # Return a 405 status response if the HTTP method is not GET
-        abort(status.HTTP_405_METHOD_NOT_ALLOWED, "Method not allowed for this endpoint.")
-
     app.logger.info("Request to list Accounts")
 
     accounts = Account.all()
@@ -91,10 +87,6 @@ def get_accounts(account_id):
     This endpoint will read an Account based on the account_id that is requested
     """
     app.logger.info("Request to read an Account with id: %s", account_id)
-
-    if request.method == "DELETE" or request.method == "PUT":
-        # Return a 405 status response if the HTTP method is not GET
-        abort(status.HTTP_405_METHOD_NOT_ALLOWED, "Method not allowed for this endpoint.")
 
     account = Account.find(account_id)
     if not account:
