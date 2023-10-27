@@ -55,6 +55,17 @@ def method_not_supported(error):
     )
 
 
+@app.errorhandler(status.HTTP_409_CONFLICT)
+def resource_conflict(error):
+    """Handles a request conflict with the current state of the target resource"""
+    message = str(error)
+    app.logger.warning(message)
+    return (
+        jsonify(status=status.HTTP_409_CONFLICT, error="Resource Conflict", message=message),
+        status.HTTP_409_CONFLICT,
+    )
+
+
 @app.errorhandler(status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
 def mediatype_not_supported(error):
     """Handles unsupported media requests with 415_UNSUPPORTED_MEDIA_TYPE"""

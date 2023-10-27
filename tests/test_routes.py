@@ -125,9 +125,11 @@ class TestAccountService(TestCase):
             json=account.serialize(),
             content_type="test/html"
         )
-        self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+        expected_status = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
+        self.assertEqual(response.status_code, expected_status)
 
     # ADD YOUR TEST CASES HERE ...
+
     # Get single account test cases
     def test_get_account(self):
         """It should Get a single Account"""
@@ -149,18 +151,46 @@ class TestAccountService(TestCase):
     # Update account test cases
     def test_update_account(self):
         """It should Update an existing Account"""
-        # create an Account to update
+        # Create an Account to update
         test_account = AccountFactory()
         resp = self.client.post(BASE_URL, json=test_account.serialize())
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
 
-        # update the account
+        # Get the initial state of the account
+        initial_account = resp.get_json()
+
+        # Update the account
         new_account = resp.get_json()
         new_account["name"] = "Something New"
-        resp = self.client.put(f"{BASE_URL}/{new_account['id']}", json=new_account)
+        update_url = f"{BASE_URL}/{new_account['id']}"
+        resp = self.client.put(update_url, json=new_account)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        # Get the updated state of the account
+        resp = self.client.get(update_url)
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
         updated_account = resp.get_json()
+
+        # Check if the initial name is different from the updated name
+        self.assertNotEqual(initial_account["name"], updated_account["name"])
+        # Check if the updated name matches what we set it to
         self.assertEqual(updated_account["name"], "Something New")
+
+    def test_update_account_with_duplicate_email(self):
+        """
+        It should not update an account's email if that email is
+        already associated with another account
+        """
+
+        # Create two distinct accounts
+        account1 = self._create_accounts(1)[0]
+        account2 = self._create_accounts(1)[0]
+
+        # Update account1 to have the email of account2
+        update_data = {"email": account2.email}
+        response_url = f"{BASE_URL}/{account1.id}"
+        response = self.client.put(response_url, json=update_data)
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
 
     def test_bad_update_request(self):
         """It should not Update an Account when sending the wrong data"""
@@ -175,24 +205,26 @@ class TestAccountService(TestCase):
     def test_method_not_allowed_update(self):
         """It should not allow an illegal Update method call"""
         response = self.client.put(BASE_URL)
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        expected_status = status.HTTP_405_METHOD_NOT_ALLOWED
+        self.assertEqual(response.status_code, expected_status)
 
     # Delete account test cases
-    def test_delete_account_not_found(self):
-        """It should not Delete an account that is not found"""
-        resp = self.client.delete(f"{BASE_URL}/0")
-        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
-
     def test_delete_account(self):
         """It should Delete an Account"""
         account = self._create_accounts(1)[0]
         resp = self.client.delete(f"{BASE_URL}/{account.id}")
         self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
 
+    def test_delete_account_not_found(self):
+        """There is no Delete operation if the account does not exist"""
+        resp = self.client.delete(f"{BASE_URL}/0")
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
     def test_method_not_allowed_delete(self):
         """It should not allow an illegal Delete method call"""
         response = self.client.delete(BASE_URL)
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        expected_status = status.HTTP_405_METHOD_NOT_ALLOWED
+        self.assertEqual(response.status_code, expected_status)
 
     # Get List of accounts test cases
     def test_get_account_list(self):
@@ -230,7 +262,9 @@ class TestAccountService(TestCase):
             'X-Frame-Options': 'SAMEORIGIN',
             'X-XSS-Protection': '1; mode=block',
             'X-Content-Type-Options': 'nosniff',
-            'Content-Security-Policy': 'default-src \'self\'; object-src \'none\'',
+            'Content-Security-Policy': (
+                "default-src 'self'; object-src 'none'"
+            ),
             'Referrer-Policy': 'strict-origin-when-cross-origin'
         }
         for key, value in headers.items():
@@ -241,7 +275,8 @@ class TestAccountService(TestCase):
         response = self.client.get('/', environ_overrides=HTTPS_ENVIRON)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # Check for the CORS header
-        self.assertEqual(response.headers.get('Access-Control-Allow-Origin'), '*')
+        cors_header = 'Access-Control-Allow-Origin'
+        self.assertEqual(response.headers.get(cors_header), '*')
 
     def test_acct_to_string(self):
         """Account repr should return the account name and id"""

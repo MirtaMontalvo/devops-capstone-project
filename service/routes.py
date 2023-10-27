@@ -103,6 +103,22 @@ def get_accounts(account_id):
 # UPDATE AN EXISTING ACCOUNT
 ######################################################################
 
+# @app.route("/accounts/<int:account_id>", methods=["PUT"])
+# def update_accounts(account_id):
+#    """
+#    Update an Account
+#    This endpoint will update an Account based on the posted data
+#    """
+#    app.logger.info("Request to update an Account with id: %s", account_id)
+
+#    account = Account.find(account_id)
+#    if not account:
+#        abort(status.HTTP_404_NOT_FOUND, f"Account with id [{account_id}] could not be found.")
+
+#    account.deserialize(request.get_json())
+#    account.update()
+
+#    return account.serialize(), status.HTTP_200_OK
 @app.route("/accounts/<int:account_id>", methods=["PUT"])
 def update_accounts(account_id):
     """
@@ -115,7 +131,15 @@ def update_accounts(account_id):
     if not account:
         abort(status.HTTP_404_NOT_FOUND, f"Account with id [{account_id}] could not be found.")
 
-    account.deserialize(request.get_json())
+    new_data = request.get_json()
+    # Check if email is being updated
+    if "email" in new_data:
+        existing_account_with_email = Account.query.filter_by(email=new_data["email"]).first()
+        # If another account with the new email exists, then raise a conflict
+        if existing_account_with_email and existing_account_with_email.id != account_id:
+            abort(status.HTTP_409_CONFLICT, "Email already exists for another account.")
+
+    account.deserialize(new_data)
     account.update()
 
     return account.serialize(), status.HTTP_200_OK
