@@ -50,7 +50,11 @@ def create_accounts():
     account.deserialize(request.get_json())
     account.create()
     message = account.serialize()
-    location_url = url_for("get_accounts", account_id=account.id, _external=True)
+    location_url = url_for(
+        "get_accounts",
+        account_id=account.id,
+        _external=True
+    )
     location_url = "/"  # Remove once get_accounts has been implemented
     return make_response(
         jsonify(message), status.HTTP_201_CREATED, {"Location": location_url}
@@ -100,11 +104,11 @@ def update_accounts(account_id):
         abort(status.HTTP_404_NOT_FOUND, msg)
     new_data = request.get_json()
     if "email" in new_data:
-        existing_account_with_email = Account.query.filter_by(
+        existing_account = Account.query.filter_by(
             email=new_data["email"]
         ).first()
-        if existing_account_with_email and existing_account_with_email.id != account_id:
-            abort(status.HTTP_409_CONFLICT, "Email exists for another account.")
+        if (existing_account and existing_account.id != account_id):
+            abort(status.HTTP_409_CONFLICT, "Email exists for another account")
     account.deserialize(new_data)
     account.update()
     return account.serialize(), status.HTTP_200_OK
