@@ -119,10 +119,8 @@ def delete_accounts(account_id):
     """Delete an Account based on the account_id that is requested"""
     app.logger.info("Request to delete an Account with id: %s", account_id)
     account = Account.find(account_id)
-    if not account:
-        msg = f"Account with id [{account_id}] not found."
-        abort(status.HTTP_404_NOT_FOUND, msg)
-    account.delete()
+    if account:
+        account.delete()
     return "", status.HTTP_204_NO_CONTENT
 
 ######################################################################
